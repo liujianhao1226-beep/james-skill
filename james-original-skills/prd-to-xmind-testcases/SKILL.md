@@ -2,9 +2,10 @@
 name: prd-to-xmind-testcases
 description: |
   从 PRD 或需求文档一键生成可导入 XMind 的测试用例思维导图大纲。
-  触发：用户说「从 PRD 生成测试用例」「生成 XMind 测试用例」「根据需求文档生成思维导图测试用例」
-  或提及：PRD 转测试用例、XMind、思维导图测试用例。
+  **必须在此场景激活**：用户粘贴需求文档并说「生成 XMind 测试用例」「生成思维导图用例」「PRD 转测试用例」「导出 XMind」「用例转思维导图」「xmind」「导入 XMind」「PRD 生成测试用例」。
+  **也会在用户说「生成测试用例思维导图」「测试用例 XMind」「用例思维导图」时触发。
   输出：Markdown 格式（.md），层级结构为：根 → 模块 → 功能 → 测试点 → 步骤/预期，可直接导入 XMind。
+  注意：本 skill 与 doc-based-testcase-generator 的区别在于输出格式——本 skill 输出 XMind 友好结构，doc-based-testcase-generator 输出表格化用例。
 ---
 
 # prd-to-xmind-testcases

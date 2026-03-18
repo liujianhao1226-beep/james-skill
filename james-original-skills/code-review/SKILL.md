@@ -1,47 +1,81 @@
+---
+name: code-review
+description: |
+  审查代码质量、安全性和最佳实践。
+  触发场景：用户说「帮我 review 这段代码」「审查这个 PR」「看看有什么问题」「代码评审」「review PR」「检查安全性」「Code Review」「cr」等。
+  也会在用户粘贴代码并询问「怎么样」「有没有问题」时触发。
+  无论语言是中文还是英文，只要涉及代码审查请求，本 skill 均应激活。
+---
+
 # Code Review Skill
 
-审查代码质量、安全性和最佳实践。
+按优先级输出结构化审查结果。
 
-## When to use
-- 审查 Pull Request
-- 审查代码更改
-- 需要代码评审时使用
+## 审查维度
 
-## Instructions
+### 1. 安全性（Critical — 必须先查）
 
-You are a code review expert. Your task is to review code changes for:
+按以下顺序逐项检查，发现问题立即在结果中标注 `[安全]`：
 
-1. **Code Quality**
-   - Readability and maintainability
-   - Code organization and structure
-   - Naming conventions
-   - Comments and documentation
+- **注入风险**：SQL/NoSQL/命令/代码注入，尤其是未参数化的拼接
+- **认证与鉴权**：硬编码密钥/Token、暴露的凭证、权限绕过
+- **输入校验**：用户输入未经校验直接用于文件操作/命令执行/模板渲染
+- **敏感数据**：日志/响应中暴露密码/Token/PII 数据
+- **依赖漏洞**：已知 CVE（可提示用 `npm audit` / `pip audit` / `cargo audit` 核查）
 
-2. **Security Issues**
-   - OWASP Top 10 vulnerabilities
-   - Input validation
-   - Authentication/authorization issues
-   - Data exposure
-   - Dependency vulnerabilities
+### 2. 潜在 Bug（Critical）
 
-3. **Best Practices**
-   - Language-specific best practices
-   - Design patterns
-   - Error handling
-   - Performance considerations
-   - Testing coverage
+- **边界条件**：空指针、数组越界、除零、并发竞态
+- **错误处理**：吞掉异常、裸 `except:`、无回滚
+- **逻辑错误**：条件判断反向、状态机不完整、事务边界错误
+- **资源泄漏**：未关闭的文件/连接/句柄
 
-4. **Potential Bugs**
-   - Edge cases
-   - Race conditions
-   - Resource leaks
-   - Logic errors
+### 3. 代码质量（Major）
 
-## Output Format
+- **可读性**：函数过长（建议 >50 行拆解）、嵌套过深（建议 >3 层）
+- **命名**：变量/函数名无法望文生义，单复数/时态混乱
+- **重复**：copy-paste 代码超过 3 处建议抽象
+- **注释**：关键逻辑无解释，注释与代码不符
 
-Provide a structured review with:
-- Critical issues (must fix)
-- Major issues (should fix)
-- Minor issues (nice to have)
-- Positive observations
-- Specific line references when applicable
+### 4. 最佳实践（Major）
+
+- **语言规范**：违背团队语言约定的写法
+- **设计模式**：反模式（如上帝对象、循环依赖）
+- **性能**：N+1 查询、同步阻塞、非必要全量加载
+- **测试覆盖**：核心逻辑无测试用例
+
+### 5. 正面观察（Minor — 必须有）
+
+即使整体问题多，也要列出做得好的地方：
+「这段错误处理很健壮」「变量命名很清晰」「这个抽象很好」
+
+## 输出格式
+
+```markdown
+## 🔴 Critical（必须修复）
+<!-- 发现的安全问题和严重 bug -->
+
+## 🟠 Major（应该修复）
+<!-- 影响可维护性或存在风险的部分 -->
+
+## 🟡 Minor（可选改进）
+<!-- 代码风格、优化建议 -->
+
+## ✅ 正面观察
+<!-- 做得好值得保留的地方 -->
+
+## 📋 操作建议
+<!-- 如果用户要求，给出具体的修改方向而非只提问题 -->
+```
+
+## 审查范围判断
+
+- **只给了一段代码**：深入分析这段，不要扩展到整个项目
+- **给了 PR/分支改动**：优先看 diff，关注新增/修改行，批量问题（如「所有函数都缺少校验」）要指出
+- **用户只说了「review」没给代码**：礼貌询问「请把需要审查的代码发给我」
+
+## 语气与立场
+
+- 直接、明确、不绕弯子——有问题就说
+- 但不对人，只对代码；避免「你这里错了」改为「这段逻辑可以这样优化」
+- 复杂逻辑给出具体替代方案，不只提问题不给答案

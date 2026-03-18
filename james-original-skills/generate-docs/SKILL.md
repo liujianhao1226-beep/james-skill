@@ -1,57 +1,122 @@
+---
+name: generate-docs
+description: |
+  为代码生成文档、注释和 README。
+  触发场景：用户说「生成文档」「帮我写 README」「加注释」「生成 API 文档」「这个函数怎么用」「帮我写文档」「给这段代码加注释」「explain this function」「add docs」「generate documentation」「写一下说明」。
+  会在用户粘贴代码并要求「说明」或「注释」时触发。
+---
+
 # Generate Documentation Skill
 
-为代码生成文档、注释和 README。
+文档跟着代码走，先问清楚再写。
 
-## When to use
-- 需要添加文档
-- 需要 API 文档
-- 需要代码注释时使用
+## 触发后第一步：问清楚三个问题
 
-## Instructions
+在开始写之前，快速确认：
 
-You are a documentation expert. Your task is to create clear, comprehensive documentation:
+1. **写什么文档？**
+   - README（项目级）
+   - API 文档（函数/接口级）
+   - 代码注释（行级）
+   - 内部使用文档（设计思路、架构）
 
-1. **README Files**
-   - Project overview and purpose
-   - Installation instructions
-   - Usage examples
-   - Configuration options
-   - Contributing guidelines
-   - License information
+2. **目标读者是谁？**
+   - 其他开发者（需要 API 签名和示例）
+   - 最终用户（需要概念解释和操作指南）
+   - 未来的自己（需要关键决策和坑点记录）
 
-2. **API Documentation**
-   - Function/method signatures
-   - Parameters and return types
-   - Usage examples
-   - Error conditions
-   - Dependencies and requirements
+3. **有没有现有文档要更新？**
+   - 有：先读现有内容，保持风格一致，只更新变化部分
+   - 无：从空白开始，按模板生成
 
-3. **Code Comments**
-   - Explain "why" not "what"
-   - Document non-obvious logic
-   - Add context for complex algorithms
-   - Note potential edge cases
-   - Mark TODOs and FIXMEs
+## 文档类型模板
 
-4. **Inline Documentation**
-   - JSDoc/DocBlock format
-   - Type annotations
-   - Parameter descriptions
-   - Return value descriptions
-   - Examples for complex functions
+### README.md（项目根目录）
 
-## Documentation Principles
+```markdown
+# 项目名称
 
-- **Clarity**: Write for your audience
-- **Completeness**: Cover all public APIs
-- **Accuracy**: Keep docs in sync with code
-- **Examples**: Show, don't just tell
-- **Maintenance**: Update docs when code changes
+一行简介：做什么的，解决了什么问题。
 
-## Output Format
+## 快速开始
 
-Generate documentation in the appropriate format:
-- Markdown for README and guides
-- JSDoc/DocBlock for code comments
-- OpenAPI/Swagger for REST APIs
-- Type-specific doc comments (Python docstrings, etc.)
+安装 / 下载方式（3 步以内）
+
+## 核心功能
+
+2-5 个主要功能，配简短说明
+
+## 使用示例
+
+最常用的 1-2 个示例，完整可运行
+
+## 配置说明（如有必要）
+
+## API 参考（如有必要，引用独立文档）
+
+## 贡献指南（如有必要）
+```
+
+### API 文档（函数/方法级）
+
+每个导出函数必须包含：
+
+```
+名称：（函数名）
+签名：（完整参数类型，如 TypeScript）
+参数：
+  - name：类型，作用，是否可选
+返回值：类型和含义
+抛出异常：（如有）
+示例：（至少一个可运行的代码片段）
+```
+
+### 代码注释规范
+
+**只写「为什么」，不写「是什么」：**
+
+```python
+# ✅ 好：注释解释了代码的目的
+# 向后兼容：旧版客户端发送的是 ISO-8859-1，需要解码
+raw_name = raw_name.decode('latin-1')
+
+# ❌ 差：注释只是重复代码
+# 遍历用户列表
+for user in users:
+```
+
+**魔法数字要解释：**
+
+```python
+# ✅ 好
+MAX_RETRIES = 3          # 超过3次认为是网络问题，不再重试
+TIMEOUT_SEC = 30          # 用户等待上限，超时提示刷新
+
+# ❌ 差
+time.sleep(30)           # 等30秒是什么意思？
+```
+
+## 质量标准
+
+生成后自检：
+
+- [ ] 每个公开函数/接口都有示例
+- [ ] 注释说明了「为什么」而非「是什么」
+- [ ] README 有「快速开始」——新人不超过 3 步能跑起来
+- [ ] 术语一致（全书统一用同一个词，不混用同义词）
+- [ ] 没有 TODO/FIXME 残留（要么补上要么建 issue）
+
+## 多语言提示
+
+| 语言 | 注释格式 |
+|---|---|
+| Python | Docstring（Google 或 NumPy 风格，任选一个项目内统一）|
+| TypeScript/JS | JSDoc，参数加类型 |
+| Go |godoc.org 风格，导出函数必须注释 |
+| Rust | `///` 或 `//!`，模块级注释说明意图 |
+
+## 输出方式
+
+- **写文件**：直接生成内容并写入目标路径
+- **写对话**：在对话中输出，用代码块包裹，标注文件路径
+- **先确认**：如果不确定写到哪里，先问用户
