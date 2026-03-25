@@ -1,100 +1,110 @@
 ---
 name: doc-based-testcase-generator
-description: |
-  从 PRD、需求文档、接口文档中自动生成结构化测试用例。
-  **必须在此场景激活**：用户粘贴一份 PRD/需求文档/接口文档并说「生成测试用例」「写测试用例」「帮我写用例」「根据这个出测试用例」「测试用例」「test case」「生成接口测试用例」「功能测试用例」「性能测试用例」「自动化候选」「用例生成」。
-  **也会在用户说「测试覆盖」「用例有哪些」「需要覆盖哪些」时触发。
-  输出：结构化 Markdown 表格（用例编号、标题、模块/接口、用例类型、优先级、前置条件、测试步骤、预期结果）。
-  支持按模板输出（Word/Excel），支持指定重点方向（接口/性能/自动化）。
-  注意：当用户提到「测试用例」或「用例」且附带了文档内容时，必须激活本 skill。
+description: Use when a user wants executable testcase tables, CSV output, or template-aligned testcase rows from requirement documents, especially when they mention Excel, CSV, 模板, 表格, 执行用例, or want a table instead of an XMind mindmap.
 ---
 
 # doc-based-testcase-generator
 
-基于文档的测试用例生成器。
+Generate structured testcase tables from requirement sources.
 
-## 核心设计原则
+## Use This Skill For
 
-生成测试用例前，**必须先按通用测试设计策略思考与覆盖**，保证输出系统化。
+- CSV / Excel 风格测试用例
+- 按现有模板列结构输出
+- 需要 `用例编号 / 功能模块 / 前置条件 / 操作步骤 / 预期结果 / 优先级` 这样的执行型行数据
 
-## 通用测试用例设计策略
+## Do Not Use This Skill For
 
-| 策略 | 含义 | 典型做法 |
-|---|---|---|
-| 正向测试用例 | 合法前置条件 + 正常路径，验证符合需求/接口约定 | 每个核心功能/接口至少 1 条 happy path；前置、输入、步骤、预期与文档一致 |
-| 反向/异常测试用例 | 非法输入、错误操作、异常状态，验证系统正确拒绝且无副作用 | 每个可校验点至少一类无效情况（格式错误、越权、重复提交等）；接口对应错误码，功能对应校验提示 |
-| 边界值用例设计 | 在范围、长度、数量的边界附近设计用例 | 提取文档中所有有范围/长度/数量限制的字段；设计边界内、边界值、超界、空值、0/负值/极大值等 |
-| 等价类划分 | 将输入域划类，每类取代表值，减少冗余 | 有效等价类取 1～2 个代表；无效等价类按违规类型各取代表；可与边界值结合 |
-| 状态与流程 | 针对状态机、多步骤流程设计合法与非法迁移 | 列出状态与允许迁移；设计正向路径、中断/回退、非法状态操作；有角色时覆盖越权 |
-| 场景法/用户场景 | 以用户故事串联多模块，做端到端用例 | 归纳 2～3 个典型场景；每场景下主流程 + 分支；可与正向/反向/边界结合 |
-| 优先级与类型标记 | 便于执行与排期 | 核心路径与关键校验标 P0；边界与次要异常标 P1/P2；并标用例类型（正向/反向/边界/异常/性能/自动化候选） |
+- XMind / 思维导图输出
+- 只想做测试范围脑图，不需要表格
+- 只想总结报告，不是生成待执行用例
 
-## 专项标准
+## Source Selection
 
-当用户提及以下关键词时，自动叠加对应专项标准：
+Use the same primary/secondary split as the XMind skill:
 
-### 接口测试
-文件：`references/api-testcases-standard.md`
+1. Primary: PRD, requirement sheets, spec docs, interface docs
+2. Secondary: testcase reports, existing outlines, bug reports
 
-必须覆盖：
-- 请求与参数：正常请求、必填缺失、类型/格式错误、边界值、可选参数不传/传空/传有效值
-- 响应与错误码：成功响应结构、文档中每个错误码至少 1 条用例、非法请求不返回 200
-- 鉴权与权限：未带鉴权、鉴权无效/过期、越权访问
-- 幂等与并发（若文档有）：重复提交、超并发/限流
+Rules:
 
-表述要求：每条用例写清接口路径+方法、请求关键取值、预期 HTTP 状态码与响应/错误码；数据依赖在前置或数据要求中说明。
+- Prefer requirement spreadsheets over reports when both exist.
+- Reports can补充场景，但不要让报告结构直接决定表格结构。
+- If the source is already a testcase mindmap in heading Markdown, render it directly to CSV with the bundled script.
 
-### 功能测试
-文件：`references/functional-testcases-standard.md`
+## Normalized Intermediate Format
 
-必须覆盖：
-- 业务流程与用户场景：主流程、分支与异常流程、端到端场景
-- 状态与角色：合法/非法状态迁移、本角色允许操作与越权
-- 界面与交互（若适用）：必填与校验、多步骤与回退
-- 数据与依赖：前置条件写清数据状态，跨模块时说明需校验的关联数据
+This skill works best when testcase content is first drafted in normalized Markdown:
 
-表述要求：用例标题可概括「谁在什么条件下做什么、预期什么」；步骤可执行、可验证；预期与需求/PRD 一致且可验收。
+```markdown
+## 模块
+### 子模块
+#### 用例标题
+- 前置：...
+- 操作：...
+- 预期：...
+```
 
-### 性能测试
-文件：`references/performance-testcases-standard.md`
+The bundled renderer maps one `####` block to one table row.
 
-必须覆盖：
-- 指标与基线：响应时间、吞吐量/QPS、资源与容量（若文档有）
-- 场景类型：基准、稳态负载、峰值/尖峰、长时间稳定性
-- 瓶颈与退化：阶梯加压、降级与限流（若文档有）
+## Template-Aligned Output
 
-表述要求：场景名称能看出「场景类型 + 目标指标」；写清负载定义（并发、QPS、时长）、环境与数据量级、通过标准（如 P99 RT、成功率）；可选观察要点（CPU、内存、错误日志等）。
+If the user provides a CSV template, render cases with:
 
-### 自动化测试用例
-文件：`references/automation-testcases-standard.md`
+```bash
+python scripts/render_case_csv.py \
+  --input cases.md \
+  --template template.csv \
+  --output cases.csv \
+  --id-prefix TC
+```
 
-- 适合自动化：稳定可重复、高执行频率、断言明确、接口或可脚本化、依赖可构造
-- 不适合或低优先：强主观/探索性、一次性/低频、环境或数据难以自动化、变更频繁
-- 输出：在用例类型或备注中标注「自动化候选」或「建议自动化」；可选补充建议实现方式、断言要点、数据与环境要求
+What the renderer guarantees:
 
-## 工作流
+- preserves template header order
+- keeps trailing execution columns empty
+- writes UTF-8 BOM CSV for spreadsheet compatibility
+- strips `前置：/操作：/预期：` labels from cell content
+- generates stable case IDs with a chosen prefix
 
-### 步骤 1：准备文档内容
-将需求文档、PRD 或接口文档中需要覆盖测试的部分复制成纯文本。
+## Default Column Contract
 
-### 步骤 2：发起请求
-用户说清意图并粘贴内容，例如：
-「请根据下面这份需求文档，帮我生成测试用例。」
-可选地加一句：
-- 「重点做接口测试」→ 叠加接口标准
-- 「要包含性能测试」→ 叠加性能标准
-- 「标出适合自动化的用例」→ 叠加自动化标准并做标记
-- 「按我们公司的 Excel 模板来」→ 按 assets 中的模板组织输出
+If no template is provided, use:
 
-### 步骤 3：输出与保存
-测试用例文档直接输出在对话中；若用户要求保存（「保存到 xxx 目录」），则写入指定路径。
+- 用例编号
+- 需求编号
+- 功能模块
+- 功能类型
+- 用例标题
+- 前置条件
+- 操作步骤
+- 预期结果
+- 自动化标识
+- 优先级
+- 测试结果
+- 备注
+- 测试人员
+- 测试日期
+- 缺陷编号
+- 适用范围
 
-## 模板对齐
+## Classification Rules
 
-若用户提及「参考 assets 里的某某模板」，则从 `assets/` 目录读取对应 Word/Excel 模板，按模板结构组织输出列与排版。assets 模板需用户自行放置。
+- `功能类型`: default to `功能`; use `兼容性` or `性能` only when the testcase is clearly in those buckets
+- `优先级`: default to P1/P2 unless the source clearly indicates a P0 core path
+- `自动化标识`: default to `否` unless the user explicitly wants automation candidates marked
 
-## 输出格式约定
+## Recommended Workflow
 
-- 不写死表格列名；以 references 的表述要求 + assets 模板为准
-- 默认仅输出在对话中，不自动写文件
-- 保存时若目录不存在会先创建
+1. Pick primary requirement sources.
+2. Draft or reuse normalized Markdown testcase content.
+3. If the user has a template, render with the bundled script.
+4. Spot-check IDs, module names, priority, and trailing empty columns.
+5. Save the final CSV only if the user asks for a file.
+
+## References
+
+- `references/api-testcases-standard.md`
+- `references/functional-testcases-standard.md`
+- `references/performance-testcases-standard.md`
+- `references/automation-testcases-standard.md`

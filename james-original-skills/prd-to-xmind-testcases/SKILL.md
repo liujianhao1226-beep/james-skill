@@ -1,77 +1,123 @@
 ---
 name: prd-to-xmind-testcases
-description: |
-  从 PRD 或需求文档一键生成可导入 XMind 的测试用例思维导图大纲。
-  **必须在此场景激活**：用户粘贴需求文档并说「生成 XMind 测试用例」「生成思维导图用例」「PRD 转测试用例」「导出 XMind」「用例转思维导图」「xmind」「导入 XMind」「PRD 生成测试用例」。
-  **也会在用户说「生成测试用例思维导图」「测试用例 XMind」「用例思维导图」时触发。
-  输出：Markdown 格式（.md），层级结构为：根 → 模块 → 功能 → 测试点 → 步骤/预期，可直接导入 XMind。
-  注意：本 skill 与 doc-based-testcase-generator 的区别在于输出格式——本 skill 输出 XMind 友好结构，doc-based-testcase-generator 输出表格化用例。
+description: Use when a user wants requirement documents turned into XMind-friendly testcase mindmaps or Markdown outlines, especially when they mention XMind, 思维导图, 脑图, 导入 XMind, or want a .xmind-style structure instead of a testcase table.
 ---
 
 # prd-to-xmind-testcases
 
-从 PRD 生成可导入 XMind 的测试用例思维导图。
+Generate testcase mindmaps from requirement sources.
 
-## 核心能力
+## Use This Skill For
 
-1. **需求文档读取**：支持从指定目录读取，或指定路径、粘贴正文；格式支持 .docx、.pdf、.txt、.md
-2. **功能/模块解析**：从文档中自动识别功能模块，与需求结构对齐，避免漏测
-3. **测试策略应用**：默认使用通用规范；可切换接口测试、性能测试规范
-4. **结构化输出**：Markdown，层级清晰，导入 XMind 后几乎不用改结构
+- XMind / 思维导图 / 脑图形式的测试用例
+- PRD、需求说明、规格表整理成模块化测试覆盖树
+- 需要后续继续转成 `.xmind` 文件
 
-## 输出层级约定（Markdown → XMind 映射）
+## Do Not Use This Skill For
 
+- 执行型 CSV / Excel 用例表
+- 需要严格贴合模板列结构的测试用例
+- 单纯整理测试报告，不是从需求反推用例
+
+## Source Selection
+
+Pick sources in this order:
+
+1. Primary: PRD, requirement sheets, spec docs, interface docs
+2. Secondary: existing testcase outlines, testcase reports, bug reports
+3. Exclude as primary: 已执行测试报告、冒烟报告、行业研究报告
+
+Rules:
+
+- If a requirement spreadsheet exists, prefer it as the primary source.
+- Use reports only to补充真实场景、命名口径、历史回归点.
+- Do not turn management branches such as `横切维度` or `版本边界/需求待确认` into top-level testcase modules. Use them as expansion rules across modules.
+
+## Supported Inputs
+
+- Directly readable with bundled script: `.md`, `.txt`, `.csv`, `.xlsx`, `.docx`
+- `.pdf`: only if the environment already has a usable extractor; otherwise ask for text or another source format
+
+To flatten structured inputs into plain text:
+
+```bash
+python scripts/extract_requirements.py --input requirements.xlsx --output requirements.txt
 ```
-# 标题         → 中心主题（根）
-## 二级标题    → 一级分支（模块）
-### 三级标题   → 二级分支（功能/子模块）
-#### 四级标题  → 测试点
-- 步骤/预期   → 测试点下的子节点
+
+## Output Modes
+
+This skill has two output contracts. Pick the one that matches the downstream tool.
+
+### Mode 1: XMind Markdown Import
+
+Use this when the user wants Markdown that can be imported by XMind desktop.
+
+Shape:
+
+```markdown
+# 测试用例标题
+## 模块
+### 功能/子模块
+#### 测试点
+- 前置：...
+- 操作：...
+- 预期：...
 ```
 
-## 内置三套规范
+### Mode 2: XMind-Tool Compatible Markdown
 
-### 通用规范（默认）
-满足：正向测试、反向/异常测试、边界值、等价类、场景法、状态与流程。
+Use this when the downstream tool expects a root topic plus indented list format, for example an `.xmind` creator/updater that reads list indentation instead of heading levels.
 
-### 接口测试规范
-叠加维度：请求/参数、响应/错误码、鉴权/权限、幂等/并发。
+Convert heading-based Markdown with:
 
-### 性能测试规范
-叠加维度：指标/基线、场景类型、瓶颈/降级。
+```bash
+python scripts/convert_headings_to_xmind_tool_md.py \
+  --input cases.md \
+  --output cases.xmind-tool.md \
+  --title "测试用例导图"
+```
 
-## 触发方式
+Shape:
 
-| 用户说法 | 使用的规范 |
-|---|---|
-| 不特别说明 / 「生成测试用例」 | 通用规范 |
-| 「按接口测试」/ 「生成接口测试用例」 | 接口测试规范 |
-| 「按性能测试」/ 「生成性能测试用例」 | 性能测试规范 |
+```markdown
+# Sheet: 测试用例导图
 
-## 输入方式
+## 测试用例导图
 
-### 推荐：requirements/ 目录
-将 PRD/PDF 等放到 Skill 的 `requirements/` 目录，说：
-「读取 requirements 里的需求文件，生成测试用例」
+- 模块
+  - 功能/子模块
+    - 测试点
+      - 前置：...
+      - 操作：...
+      - 预期：...
+```
 
-### 指定路径
-「根据 docs/产品需求 v2.pdf 生成测试用例」
+## Generation Rules
 
-### 粘贴正文
-将需求关键章节粘贴到对话，说：
-「根据下面这段需求生成思维导图测试用例」
+- Root: product, feature set, or test scope name
+- Level 1: modules
+- Level 2: functions or submodules
+- Level 3: testcase titles
+- Level 4 bullets: `前置` / `操作` / `预期`
 
-## XMind 导入步骤
+Coverage rules:
 
-1. 保存生成的 .md 文件
-2. 打开 XMind → 文件 → 导入 → Markdown
-3. 选择该 .md 文件，得到测试用例思维导图
-4. 在 XMind 中微调文案、加备注、调样式
+- Prefer concrete testable behavior over abstract labels
+- Keep one testcase per `####` node
+- Split happy path, boundary, and abnormal flow into separate testcases
+- If the source is weak but reports expose critical product logic, keep the logic but do not reframe a report artifact as a requirement
 
-## references/ 目录
+## Recommended Workflow
 
-- `通用测试用例设计策略.md` — 通用规范详细说明
-- `接口测试用例标准.md` — 接口专项维度
-- `性能测试用例标准.md` — 性能专项维度
+1. Identify primary and secondary sources.
+2. Flatten spreadsheets or docx inputs if needed.
+3. Draft heading-based Markdown outline.
+4. Review whether module boundaries match the real product, not the report structure.
+5. If the user wants actual `.xmind`, convert to xmind-tool compatible Markdown and pass it to the downstream xmind creator.
 
-如需扩展自定义规范，在 references/ 下新增 .md 文件并在对话中引用即可。
+## References
+
+- `references/通用测试用例设计策略.md`
+- `references/api-testcases-standard.md`
+- `references/functional-testcases-standard.md`
+- `references/performance-testcases-standard.md`
