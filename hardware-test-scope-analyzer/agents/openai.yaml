@@ -1,0 +1,3 @@
+interface:
+  display_name: "Hardware Test Scope Analyzer"
+  short_description: "Expand or generate smart hardware test scope from product evidence, and export real XMind files."

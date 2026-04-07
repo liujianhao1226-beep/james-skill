@@ -1,0 +1,3 @@
+interface:
+  display_name: "Mindmap to Testcases"
+  short_description: "将思维导图转换为可执行测试用例表"
